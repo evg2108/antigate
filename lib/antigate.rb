@@ -29,10 +29,14 @@ module Antigate
   		@domain = "antigate.com"
   	end
 
-  	def recognize(url, ext)
+
+		# @param url_or_hash
+		# if String, then used as URL of image
+		# if Hash, then url_or_hash[:image] used as image content
+		def recognize(url_or_hash, ext='')
   		added = nil
   		loop do
-  			added = add(url, ext)
+  			added = add(url_or_hash, ext)
         next if added.nil?
   			if added.include? 'ERROR_NO_SLOT_AVAILABLE'
   				sleep(1)
@@ -59,15 +63,10 @@ module Antigate
   		else
   			return added
   		end
-  	end
+		end
 
-  	def add(url, ext)
-  	  uri = URI.parse(url)
-  	  http = Net::HTTP.new(uri.host, uri.port)
-  	  http.use_ssl = (uri.port == 443)
-  	  request = Net::HTTP::Get.new(uri.request_uri)
-  	  response = http.request(request)
-  	  captcha = response.body
+  	def add(url_or_hash, ext)
+  	  captcha = get_image_content(url_or_hash)
   		if captcha
   			params = {
   				'method' => 'base64',
@@ -85,7 +84,24 @@ module Antigate
   		end
   	end
 
-  	def status(id)
+		def get_image_content(url_or_hash)
+			if url_or_hash.is_a? Hash
+				url_or_hash[:image]
+			else
+				get_image_from_url(url_or_hash)
+			end
+		end
+
+		def get_image_from_url(url)
+			uri = URI.parse(url)
+			http = Net::HTTP.new(uri.host, uri.port)
+			http.use_ssl = (uri.port == 443)
+			request = Net::HTTP::Get.new(uri.request_uri)
+			response = http.request(request)
+			response.body
+		end
+
+		def status(id)
   		return Net::HTTP.get(URI("http://#{@domain}/res.php?key=#{@key}&action=get&id=#{id}")) rescue nil
   	end
 
