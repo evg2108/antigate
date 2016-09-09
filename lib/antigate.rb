@@ -30,13 +30,13 @@ module Antigate
   	end
 
 
-		# @param url_or_hash
-		# if String, then used as URL of image
-		# if Hash, then url_or_hash[:image] used as image content
-		def recognize(url_or_hash, ext='')
+		# @param hash
+		# if Hash, then hash[:image] used as image content
+		# if hash[:url], then used as URL of image
+		def recognize(hash)
   		added = nil
   		loop do
-  			added = add(url_or_hash, ext)
+  			added = add(hash)
         next if added.nil?
   			if added.include? 'ERROR_NO_SLOT_AVAILABLE'
   				sleep(1)
@@ -65,30 +65,31 @@ module Antigate
   		end
 		end
 
-  	def add(url_or_hash, ext)
-  	  captcha = get_image_content(url_or_hash)
+  	def add(hash)
+  	  captcha = get_image_content(hash)
   		if captcha
   			params = {
   				'method' => 'base64',
   				'key' => @key,
   				'body' => Base64.encode64(captcha),
-  				'ext' => ext,
   				'phrase' => @phrase,
   				'regsense' => @regsense,
   				'numeric' => @numeric,
   				'calc' => @calc,
   				'min_len' => @min_len,
-  				'max_len' => @max_len
+  				'max_len' => @max_len,
   			}
+				params['ext'] = hash[:ext] if hash[:ext]
+				params['comment'] = hash[:comment] if hash[:comment]
   			return Net::HTTP.post_form(URI("http://#{@domain}/in.php"), params).body rescue nil
   		end
   	end
 
-		def get_image_content(url_or_hash)
-			if url_or_hash.is_a? Hash
-				url_or_hash[:image]
-			else
-				get_image_from_url(url_or_hash)
+		def get_image_content(hash)
+			if hash[:image]
+				hash[:image]
+			elsif hash[:url]
+				get_image_from_url(hash[:url])
 			end
 		end
 
